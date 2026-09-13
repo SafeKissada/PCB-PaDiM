@@ -1,0 +1,10 @@
+torch>=2.1
+torchvision>=0.16
+numpy
+pandas
+scipy
+scikit-learn
+opencv-python
+pillow
+tqdm
+pytest>=7.0  # tests/test_evaluate.py, tests/test_cost_aware.py (numeric unit tests, ต่างจาก smoke_test.py ที่เช็คแค่ pipeline)
