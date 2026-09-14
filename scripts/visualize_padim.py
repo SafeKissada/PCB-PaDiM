@@ -192,6 +192,6 @@ def visualize(cfg: Config):
 
 
 if __name__ == "__main__":
-    from RUN import OVERRIDES
+    from single_run import OVERRIDES
     cfg = Config(**OVERRIDES)
     visualize(cfg)
