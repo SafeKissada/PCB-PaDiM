@@ -1,4 +1,4 @@
-"""I/O utilities สำหรับ PatchCore baseline — ออกแบบให้ schema ของ output
+"""I/O utilities สำหรับ PaDiM baseline — ออกแบบให้ schema ของ output
 ตรงกับ repo หลัก (Anomaly-Detection-THESIS) ทุก key เพื่อให้ script เทียบ
 ผลข้าม repo ใช้ชื่อไฟล์และ key เดียวกันได้โดยไม่มี silent mismatch
 
@@ -6,7 +6,7 @@
   SAVE_PATH   — ตัวเลข/log: .npz, .json, .csv  (โหลดกลับคำนวณต่อได้)
   OUTPUT_PATH — ภาพ: .png เท่านั้น             (ดูด้วยตาเท่านั้น)
 
-I/O utilities for the PatchCore baseline — designed so that output schemas
+I/O utilities for the PaDiM baseline — designed so that output schemas
 match the main repo (Anomaly-Detection-THESIS) key-for-key, letting
 cross-repo comparison scripts use the same filenames and key names without
 any silent mismatch.
@@ -23,6 +23,35 @@ from sklearn.metrics import roc_curve
 
 
 # ── SAVE_PATH artifacts (ตัวเลข/log) ─────────────────────────────────────
+
+def _strip_arrays(d: dict) -> dict:
+    """แปลง ndarray -> list แบบ recursive — ใช้กับ naive_baselines ที่มี 3
+    sub-dict (always_normal/always_anomaly/random_prior) ซึ่งแต่ละอันมี
+    cm/fpr/tpr/gt/pred เป็น ndarray จาก compute_metrics_from_predictions()
+    (เดิม `out["naive_baselines"] = naive_baselines` merge เข้า JSON แบบดิบ
+    ไม่กรอง ต่างจาก `metrics` ที่กรองแล้ว — ทำให้ json.dumps() พังตอนรันจริง
+    ด้วย TypeError: Object of type ndarray is not JSON serializable)
+
+    Recursively converts ndarray -> list — used for naive_baselines, which
+    has 3 sub-dicts (always_normal/always_anomaly/random_prior), each
+    containing cm/fpr/tpr/gt/pred as ndarrays from
+    compute_metrics_from_predictions() (previously
+    `out["naive_baselines"] = naive_baselines` merged this into the JSON
+    raw, unlike `metrics` which was already filtered — causing
+    json.dumps() to crash at runtime).
+    """
+    out = {}
+    for k, v in d.items():
+        if k in ("cm", "fpr", "tpr", "gt", "pred", "scores"):
+            continue
+        if isinstance(v, dict):
+            out[k] = _strip_arrays(v)
+        elif hasattr(v, "tolist"):
+            out[k] = v.tolist()
+        else:
+            out[k] = v
+    return out
+
 
 def save_final_results(cfg, split_name: str, metrics: dict,
                         threshold: float,
@@ -114,7 +143,7 @@ def save_final_results(cfg, split_name: str, metrics: dict,
         },
     }
     if naive_baselines is not None:
-        out["naive_baselines"] = naive_baselines
+        out["naive_baselines"] = _strip_arrays(naive_baselines)
     out_path = Path(cfg.SAVE_PATH) / f"final_results_{split_name}_seed{cfg.SEED}.json"
     out_path.write_text(
         json.dumps(out, indent=2, ensure_ascii=False), encoding="utf-8")
