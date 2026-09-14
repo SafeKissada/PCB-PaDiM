@@ -200,7 +200,12 @@ class PaDiM:
                     f"({H*W} ตำแหน่ง, {n_select}x{n_select} matrix ต่อตัว) "
                     f"— ขั้นนี้อาจใช้เวลาสักครู่ ไม่มี progress log ระหว่างทาง "
                     f"เพราะเป็น operation เดียวรวด ไม่ได้ค้าง...")
-        self.cov_inv = torch.linalg.inv(cov)  # [H*W, C_sel, C_sel]
+        chunk_size = max(1, self.cfg.__dict__.get("COV_INV_CHUNK_SIZE", 256))
+        cov_inv_chunks = []
+        for start in range(0, H * W, chunk_size):
+            end = min(start + chunk_size, H * W)
+            cov_inv_chunks.append(torch.linalg.inv(cov[start:end]))
+        self.cov_inv = torch.cat(cov_inv_chunks, dim=0)  # [H*W, C_sel, C_sel]
         logger.info("PaDiM fit เสร็จแล้ว")
 
     @torch.no_grad()
