@@ -54,7 +54,7 @@ COV_REG_EPSILON_VALUES = [0.01, 0.05, 0.1]
 
 
 def main():
-    from RUN import OVERRIDES
+    from single_run import OVERRIDES
 
     # โหลดข้อมูล/split ครั้งเดียว reuse ข้าม combination ทั้งหมด — ไม่ต้อง
     # scan disk ใหม่ทุกรอบ (channel selection/covariance เท่านั้นที่ต่าง
