@@ -31,7 +31,7 @@ def main():
     Load scores_val.npz + scores_test.npz, sweep cost-aware thresholds on
     val, evaluate on test, save cost_aware_sweep.csv to SAVE_PATH.
     """
-    from RUN import OVERRIDES
+    from single_run import OVERRIDES
     from src.cost_aware import cost_sweep_report
 
     cfg = Config(**OVERRIDES)
