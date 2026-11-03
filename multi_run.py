@@ -67,7 +67,7 @@ import scripts.visualize_padim        as visualize_padim
 import scripts.run_cost_aware_padim   as run_cost_aware_padim
 
 # ── seed ที่จะรัน ────────────────────────────────────────────────────
-SEEDS = [1, 14, 42, 99, 143, 292, 555, 777, 999,19999]
+SEEDS = [1, 14, 42, 99, 143, 292, 555, 777, 999, 19999]
 
 # ── seed ที่ใช้ "สร้าง" split cache เมื่อยังไม่มีไฟล์ (แยกขาดจาก SEEDS
 # ด้านบนโดยเจตนา) — ก่อนหน้านี้ไม่มี field นี้: ถ้า SPLIT_CACHE_PATH ยัง
@@ -105,7 +105,7 @@ SPLIT_SEED = 42
 # True: SPLIT_CACHE_PATH also varies per seed — conflates model + split
 # variance; use only when the research question is "how stable is the
 # split itself", not for comparing against EXPERIMENT 0.
-VARY_SPLIT_PER_SEED = False
+VARY_SPLIT_PER_SEED = True
 
 # ── key ที่ต้องแยกตาม seed ──────────────────────────────────────────
 # SAVE_PATH/OUTPUT_PATH แยกต่อ seed เสมอ (กันผลของ seed ต่างๆ เขียนทับกัน)
