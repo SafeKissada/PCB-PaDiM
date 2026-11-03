@@ -61,12 +61,34 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import single_run
 from config.config import Config
+from src.data.dataset import scan_and_split
 import scripts.run_padim              as run_padim
 import scripts.visualize_padim        as visualize_padim
 import scripts.run_cost_aware_padim   as run_cost_aware_padim
 
 # ── seed ที่จะรัน ────────────────────────────────────────────────────
-SEEDS = [1, 14, 42, 99, 143]
+SEEDS = [1, 14, 42, 99, 143, 292, 555, 777, 999,19999]
+
+# ── seed ที่ใช้ "สร้าง" split cache เมื่อยังไม่มีไฟล์ (แยกขาดจาก SEEDS
+# ด้านบนโดยเจตนา) — ก่อนหน้านี้ไม่มี field นี้: ถ้า SPLIT_CACHE_PATH ยัง
+# ไม่มีไฟล์ตอนเริ่ม seed ตัวแรกใน SEEDS (ที่นี่คือ 1) คำนวณ split ด้วย
+# seed ของ SEEDS[0] "โดยบังเอิญ" (ไม่ได้ตั้งใจ) แล้วก็ยังเขียนลง path ที่
+# literal ว่า "SEED 42" อยู่ดี (เพราะ path เป็น string ที่ตั้งไว้ตายตัวใน
+# single_run.OVERRIDES ไม่ได้ผูกกับ seed จริงที่คำนวณ) ทำให้ชื่อโฟลเดอร์
+# กับ seed ที่คำนวณจริงไม่ตรงกัน และผลลัพธ์เปลี่ยนไปตามว่า SEEDS ตัวไหน
+# มาก่อนในลิสต์ — ไม่ reproducible ข้ามการรัน ถ้าแก้ลำดับ SEEDS
+#
+# SPLIT_SEED is the seed used to CREATE the split cache if the file
+# doesn't exist yet — deliberately decoupled from SEEDS above. Before
+# this field existed: if SPLIT_CACHE_PATH had no file when the first
+# seed in SEEDS (here: 1) started, the split got computed with that
+# seed "by accident" (not by intent), yet still written to a path whose
+# literal name says "SEED 42" (the path is a fixed string in
+# single_run.OVERRIDES, unrelated to whichever seed actually computed
+# it) — so the folder name and the seed that actually computed the
+# split could disagree, and results weren't reproducible across runs if
+# SEEDS were reordered.
+SPLIT_SEED = 42
 
 # ── เปิดถ้าต้องการวัด split variance ด้วย (คนละคำถามวิจัยจาก default) ──
 # False (ค่าเริ่มต้น): SPLIT_CACHE_PATH คงที่ทุก seed — วัดเฉพาะความ
@@ -123,6 +145,28 @@ for key in TEMPLATE_KEYS:
 print("Path templates ที่ตรวจพบ:")
 for key, tmpl in path_templates.items():
     print(f"  {key} = {tmpl!r}")
+
+# ── สร้าง split cache ด้วย SPLIT_SEED ก่อนเข้า loop ของ model seeds ──
+# ทำเฉพาะตอน VARY_SPLIT_PER_SEED=False (คือตอนที่ SPLIT_CACHE_PATH คงที่
+# ทุก seed) — ถ้าไฟล์มีอยู่แล้ว scan_and_split() จะแค่โหลด (ไม่คำนวณซ้ำ
+# ไม่กระทบ split เดิมที่เคยเทียบผลไปแล้ว) ถ้ายังไม่มี จะคำนวณด้วย
+# SPLIT_SEED ที่กำหนดไว้ชัดเจนด้านบน ไม่ใช่ seed ตัวแรกใน SEEDS ที่บังเอิญ
+# รันถึงก่อน — ทำให้ผลไม่ขึ้นกับลำดับใน SEEDS list อีกต่อไป
+#
+# Pre-warm the split cache with SPLIT_SEED before the model-seed loop.
+# Only runs when VARY_SPLIT_PER_SEED=False (SPLIT_CACHE_PATH fixed
+# across seeds) — if the file already exists, scan_and_split() just
+# loads it (no recompute, no disruption to a split already used for
+# prior comparisons). If it doesn't exist yet, it's computed with the
+# explicit SPLIT_SEED above, not whichever seed in SEEDS happens to run
+# first — so the result no longer depends on the order of SEEDS.
+if not VARY_SPLIT_PER_SEED:
+    _split_overrides = dict(single_run.OVERRIDES)
+    _split_overrides['SEED'] = SPLIT_SEED
+    _split_cfg = Config(**_split_overrides)
+    print(f"\nเช็ค/สร้าง split cache ด้วย SPLIT_SEED={SPLIT_SEED} "
+          f"(ก่อนเริ่ม seed แรกใน SEEDS)...")
+    scan_and_split(_split_cfg)
 
 results_log = []
 
